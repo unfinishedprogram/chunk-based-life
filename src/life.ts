@@ -1,6 +1,6 @@
 import { Chunk } from "./chunk";
 
-const chunk_size = 32;
+const chunk_size = 64;
 
 export type V2 = [number, number];
 
@@ -12,18 +12,22 @@ export class Life {
 
 	draw(ctx:CanvasRenderingContext2D, pos:V2, size:V2){
 		pos = chunkPos(pos);
+
 		size = size.map(n => Math.ceil(n/chunk_size)) as V2;
+
+		ctx.fillStyle = "pink";
+
+		ctx.fillRect(
+			pos[0] * chunk_size, 
+			pos[1] * chunk_size, 
+			size[0] * chunk_size,
+			size[1] * chunk_size);
 
 		for(let x = pos[0]; x <  pos[0] + size[0]; x++) {
 			for(let y = pos[1]; y < pos[1] + size[1]; y++) {
-
 				let chunk = this.getChunk([x*chunk_size, y*chunk_size]);
-
 				if(chunk) {
-					ctx.putImageData(chunk.draw(), x * chunk_size, y * chunk_size);
-				} else {
-					ctx.fillStyle = "pink";
-					ctx.fillRect(x * chunk_size, y * chunk_size, chunk_size, chunk_size);
+					ctx.putImageData(chunk.draw(), (x - pos[0]) * chunk_size, (y - pos[1]) * chunk_size);
 				}
 			}
 		}
@@ -31,7 +35,7 @@ export class Life {
 
 	setCell(pos:V2, value:number){
 		this.createChunk(chunkPos(pos));
-		this.getChunk(pos)!.setCell(pos, value);
+		this.getChunk(pos)!.setCell(pos[0], pos[1], value);
 	}
 
 	getCell(pos:V2, createIfEmpty:boolean):number {
@@ -39,9 +43,9 @@ export class Life {
 
 		if(c){
 			if(createIfEmpty) {
-				c.active = 10;
+				c.active = 2;
 			}
-			return c.getCell(pos);
+			return c.getCell(pos[0], pos[1]) ? 1 : 0;
 		} else {
 			if(createIfEmpty) {
 				this.createChunk(pos.map(n => Math.floor(n/chunk_size)) as V2);
@@ -51,7 +55,6 @@ export class Life {
 	}
 
 	createChunk(pos:V2):Chunk {
-
 		if(!this.chunks.has(pos[0])){
 			this.chunks.set(pos[0], new Map());
 		}
@@ -59,7 +62,7 @@ export class Life {
 		const m = this.chunks.get(pos[0])!;
 
 		if(!m.has(pos[1])){
-			m.set(pos[1], new Chunk(chunk_size, pos, this));
+			m.set(pos[1], new Chunk(chunk_size, pos[0], pos[1], this));
 			m.get(pos[1])?.step();
 			this.chunkCount++;
 		}
@@ -83,10 +86,14 @@ export class Life {
 		return m.get(pos[1]);
 	}
 
-	step(){
+	flipBuffers(){
 		this.chunks.forEach(m => m.forEach(c => c.flip()));
+	}
+
+	step(){
+		this.flipBuffers();
 		this.chunks.forEach(m => m.forEach((c, i) => {
-			c.step()
+			c.step();
 			if(!c.active) {
 				c.dispose();
 				m.delete(i);
