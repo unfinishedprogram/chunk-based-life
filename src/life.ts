@@ -1,6 +1,6 @@
 import { Chunk } from "./chunk";
 
-const chunk_size = 64;
+const chunk_size = 32;
 
 export type V2 = [number, number];
 
@@ -25,6 +25,7 @@ export class Life {
 
 		for(let x = pos[0]; x <  pos[0] + size[0]; x++) {
 			for(let y = pos[1]; y < pos[1] + size[1]; y++) {
+				if(!this.chunks.has(x)) continue;
 				let chunk = this.getChunk([x*chunk_size, y*chunk_size]);
 				if(chunk) {
 					ctx.putImageData(chunk.draw(), (x - pos[0]) * chunk_size, (y - pos[1]) * chunk_size);
@@ -43,7 +44,7 @@ export class Life {
 
 		if(c){
 			if(createIfEmpty) {
-				c.active = 2;
+				c.active = 4;
 			}
 			return c.getCell(pos[0], pos[1]) ? 1 : 0;
 		} else {
@@ -71,7 +72,7 @@ export class Life {
 	}
 
 	getChunk(pos:V2): Chunk | undefined {
-		pos = pos.map(n => Math.floor(n/chunk_size)) as V2;
+		pos = pos.map(n => Math.floor(n / chunk_size)) as V2;
 
 		if(!this.chunks.has(pos[0])){
 			return undefined;
